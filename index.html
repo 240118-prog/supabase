@@ -105,118 +105,47 @@
     </div>
 
     <script type="module">
-    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
+        // Вставь это ВМЕСТО твоего текущего кода внутри <script type="module">
+import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
 
-    const URL = 'https://egcivoqsyivtzwtrjuyi.supabase.co';
-    const KEY = 'sb_publishable_LEZr5rVEb19wJLpqovojZw_7pkqk8xW'; 
-    const supabase = createClient(URL, KEY);
+const supabase = createClient('ТВОЙ_URL', 'ТВОЙ_ANON_KEY')
 
-    let currentUser = null;
+let currentUser = null;
 
-    // 1. Функция входа
-   async function signInWithGoogle() {
-    console.log("Нажали кнопку входа..."); // Это появится в консоли при нажатии
+// Функция входа
+window.signInWithGoogle = async () => {
     const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
-        options: {
-            redirectTo: 'https://240118-prog.github.io/supabase/'
-        }
+        options: { redirectTo: window.location.href }
     });
-    if (error) {
-        console.error('Ошибка входа:', error.message);
-        alert('Ошибка: ' + error.message);
-    }
-}
-    // 2. Функция выхода
-    async function signOut() {
-        await supabase.auth.signOut();
-        window.location.reload();
-    }
+    if (error) console.error("Ошибка входа:", error.message);
+};
 
-    // 3. Измененная функция смены статуса (теперь берет ID из сессии)
-    window.changeStatus = async (text, color) => {
-        if (!currentUser) return alert("Сначала войдите в аккаунт!");
+// Функция выхода
+window.signOut = async () => {
+    await supabase.auth.signOut();
+    window.location.reload();
+};
 
-        const { error } = await supabase
-            .from('profiles')
-            .update({ status: text, color: color })
-            .eq('id', currentUser.id);
-
-        if (error) {
-            console.error(error);
-            alert("Ошибка обновления. Проверьте политики RLS.");
-        } else {
-            fetchGroup();
-        }
-    };
-
-    async function fetchGroup() {
-        const { data, error } = await supabase
-            .from('profiles')
-            .select('*')
-            .order('username', { ascending: true });
-
-        if (error) return console.error(error);
-
-        const list = document.getElementById('groupList');
-        list.innerHTML = data.map(user => `
-            <div class="user-item">
-                <div class="status-dot" style="background: ${user.color || '#ccc'}"></div>
-                <div class="user-details" style="flex-grow: 1;">
-                    <strong>${user.username || user.email}</strong><br>
-                    <small>${user.status || 'Статус не задан'}</small>
-                </div>
-            </div>
-        `).join('');
-
-        if (currentUser) {
-            const me = data.find(u => u.id === currentUser.id);
-            document.getElementById('myInfo').innerText = `Вы зашли как: ${me?.username || currentUser.email}`;
-        }
-    }
-
-    // 4. Слушатель состояния авторизации
+// Главный слушатель
 supabase.auth.onAuthStateChange(async (event, session) => {
-    console.log("Событие авторизации:", event, session); // Для проверки в консоли
+    const loginBtn = document.getElementById('loginBtn');
+    const authSection = document.getElementById('authSection'); // Проверь, есть ли такой ID
 
     if (session) {
         currentUser = session.user;
-
-        // 1. Пытаемся найти пользователя в таблице profiles
-        let { data: profile, error } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', currentUser.id)
-            .single();
-
-        // 2. Если пользователя в таблице еще нет (первый вход) — создаем его
-        if (!profile) {
-            console.log("Профиль не найден, создаем новый...");
-            const { error: insertError } = await supabase
-                .from('profiles')
-                .insert([
-                    { 
-                        id: currentUser.id, 
-                        username: currentUser.email.split('@')[0], 
-                        status: 'В сети', 
-                        color: '#6c757d' 
-                    }
-                ]);
-            if (insertError) console.error("Ошибка создания профиля:", insertError);
-        }
-
-        // 3. Меняем кнопки на странице
-        document.getElementById('loginBtn').style.display = 'none';
-        document.getElementById('logoutBtn').style.display = 'block';
+        if (loginBtn) loginBtn.style.display = 'none';
         
-        // 4. Обновляем список группы на экране
-        fetchGroup();
+        // Показываем имя (вместо "Загрузка")
+        const profileName = currentUser.email.split('@')[0];
+        document.querySelector('.card h2').innerText = profileName; 
+        
+        console.log("Вы вошли как:", profileName);
     } else {
-        currentUser = null;
-        document.getElementById('loginBtn').style.display = 'block';
-        document.getElementById('logoutBtn').style.display = 'none';
+        if (loginBtn) loginBtn.style.display = 'block';
     }
 });
+   
 </script>
 </body>
 </html>
