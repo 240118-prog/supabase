@@ -118,9 +118,11 @@
         const { error } = await supabase.auth.signInWithOAuth({
             provider: 'google',
             options: {
-                redirectTo: window.location.origin // Вернуться на текущую страницу после входа
+                // Если эта строка есть, убедись что тут правильный адрес Гитхаба
+                redirectTo: 'https://240118-prog.github.io/supabase/' 
             }
         });
+
         if (error) console.error('Ошибка входа:', error.message);
     }
 
