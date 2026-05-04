@@ -100,65 +100,57 @@
     </div>
         <div class="card" id="authSection">
     <h2>Вход</h2>
-    <button onclick="signInWithGoogle()" id="loginBtn">Войти через Google</button>
+    <button id="loginBtn">Войти через Google</button>
     <button id="logoutBtn" class="status-btn" style="background: #ea4335; display: none;">Выйти</button>
     </div>
 
     <script type="module">
-import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
+        import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
 
-const supabase = createClient('ТВОЙ_URL', 'ТВОЙ_ANON_KEY')
+// 1. Инициализация (ВСТАВЬ СВОИ ДАННЫЕ ТУТ)
+const supabase = createClient('https://egcivoqsyivtzwtrjuyi.supabase.co', 'sb_publishable_LEZr5rVEb19wJLpqovojZw_7pkqk8xW')
 
-let currentUser = null;
+// 2. Ждем загрузки всей страницы, чтобы кнопка точно нашлась
+document.addEventListener('DOMContentLoaded', () => {
+    const loginBtn = document.getElementById('loginBtn');
 
-// Функция входа
-// Функция входа (теперь она точно будет видна кнопке)
-window.signInWithGoogle = async () => {
-    console.log("Кнопка нажата, запускаем вход...");
-    const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-            // Возвращаем пользователя строго на страницу проекта
-            redirectTo: 'https://240118-prog.github.io/supabase/'
-        }
-    });
-    if (error) console.error("Ошибка Supabase:", error.message);
-};
-
-// Слушатель входа
-supabase.auth.onAuthStateChange((event, session) => {
-    console.log("Событие:", event, session); // Это то, что мы видели на скрине
-    if (session) {
-        document.getElementById('loginBtn').style.display = 'none';
-        // Убираем надпись "Загрузка" и ставим имя
-        document.querySelector('.card h2').innerText = session.user.email.split('@')[0];
+    if (loginBtn) {
+        // Привязываем нажатие ПРЯМО ЗДЕСЬ, а не в HTML
+        loginBtn.onclick = async () => {
+            console.log("Кнопка реально нажата!");
+            const { error } = await supabase.auth.signInWithOAuth({
+                provider: 'google',
+                options: {
+                    // Указываем путь к папке на GitHub
+                    redirectTo: 'https://240118-prog.github.io/supabase/'
+                }
+            });
+            if (error) alert("Ошибка Supabase: " + error.message);
+        };
+    } else {
+        console.error("Кнопка loginBtn не найдена в HTML! Проверь id.");
     }
 });
 
-// Функция выхода
-window.signOut = async () => {
-    await supabase.auth.signOut();
-    window.location.reload();
-};
-
-// Главный слушатель
-supabase.auth.onAuthStateChange(async (event, session) => {
+// 3. Слушатель входа
+supabase.auth.onAuthStateChange((event, session) => {
+    console.log("Статус изменился:", event, session);
     const loginBtn = document.getElementById('loginBtn');
-    const authSection = document.getElementById('authSection'); // Проверь, есть ли такой ID
-
+    
     if (session) {
-        currentUser = session.user;
         if (loginBtn) loginBtn.style.display = 'none';
         
-        // Показываем имя (вместо "Загрузка")
-        const profileName = currentUser.email.split('@')[0];
-        document.querySelector('.card h2').innerText = profileName; 
+        // Меняем текст "Загрузка" на имя
+        const userName = session.user.email.split('@')[0];
+        const statusHeader = document.querySelector('.card h2');
+        if (statusHeader) statusHeader.innerText = userName;
         
-        console.log("Вы вошли как:", profileName);
+        console.log("Успешный вход!");
     } else {
         if (loginBtn) loginBtn.style.display = 'block';
     }
 });
+
    
 </script>
 </body>
