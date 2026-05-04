@@ -100,12 +100,11 @@
     </div>
         <div class="card" id="authSection">
     <h2>Вход</h2>
-    <button id="loginBtn" class="status-btn" style="background: #4285F4;">Войти через Google</button>
+    <button onclick="signInWithGoogle()" id="loginBtn">Войти через Google</button>
     <button id="logoutBtn" class="status-btn" style="background: #ea4335; display: none;">Выйти</button>
     </div>
 
     <script type="module">
-        // Вставь это ВМЕСТО твоего текущего кода внутри <script type="module">
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
 
 const supabase = createClient('ТВОЙ_URL', 'ТВОЙ_ANON_KEY')
@@ -113,13 +112,28 @@ const supabase = createClient('ТВОЙ_URL', 'ТВОЙ_ANON_KEY')
 let currentUser = null;
 
 // Функция входа
+// Функция входа (теперь она точно будет видна кнопке)
 window.signInWithGoogle = async () => {
+    console.log("Кнопка нажата, запускаем вход...");
     const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
-        options: { redirectTo: window.location.href }
+        options: {
+            // Возвращаем пользователя строго на страницу проекта
+            redirectTo: 'https://240118-prog.github.io/supabase/'
+        }
     });
-    if (error) console.error("Ошибка входа:", error.message);
+    if (error) console.error("Ошибка Supabase:", error.message);
 };
+
+// Слушатель входа
+supabase.auth.onAuthStateChange((event, session) => {
+    console.log("Событие:", event, session); // Это то, что мы видели на скрине
+    if (session) {
+        document.getElementById('loginBtn').style.display = 'none';
+        // Убираем надпись "Загрузка" и ставим имя
+        document.querySelector('.card h2').innerText = session.user.email.split('@')[0];
+    }
+});
 
 // Функция выхода
 window.signOut = async () => {
