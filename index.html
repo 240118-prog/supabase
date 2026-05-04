@@ -118,8 +118,7 @@ async function signInWithGoogle() {
     const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-            // ЗАМЕНИ window.location.origin НА СТРОКУ НИЖЕ:
-            redirectTo: 'https://240118-prog.github.io/supabase/' 
+            redirectTo: 'https://240118-prog.github.io/supabase/'
         }
     });
     if (error) console.error('Ошибка входа:', error.message);
