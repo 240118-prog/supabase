@@ -175,26 +175,47 @@
     }
 
     // 4. Слушатель состояния авторизации
-    supabase.auth.onAuthStateChange((event, session) => {
-        if (session) {
-            currentUser = session.user;
-            document.getElementById('loginBtn').style.display = 'none';
-            document.getElementById('logoutBtn').style.display = 'block';
-            fetchGroup();
-        } else {
-            currentUser = null;
-            document.getElementById('loginBtn').style.display = 'block';
-            document.getElementById('logoutBtn').style.display = 'none';
-            document.getElementById('myInfo').innerText = "Войдите, чтобы управлять статусом";
+supabase.auth.onAuthStateChange(async (event, session) => {
+    console.log("Событие авторизации:", event, session); // Для проверки в консоли
+
+    if (session) {
+        currentUser = session.user;
+
+        // 1. Пытаемся найти пользователя в таблице profiles
+        let { data: profile, error } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', currentUser.id)
+            .single();
+
+        // 2. Если пользователя в таблице еще нет (первый вход) — создаем его
+        if (!profile) {
+            console.log("Профиль не найден, создаем новый...");
+            const { error: insertError } = await supabase
+                .from('profiles')
+                .insert([
+                    { 
+                        id: currentUser.id, 
+                        username: currentUser.email.split('@')[0], 
+                        status: 'В сети', 
+                        color: '#6c757d' 
+                    }
+                ]);
+            if (insertError) console.error("Ошибка создания профиля:", insertError);
         }
-    });
 
-    // Привязка кнопок
-    document.getElementById('loginBtn').onclick = signInWithGoogle;
-    document.getElementById('logoutBtn').onclick = signOut;
-
-    // Обновление списка
-    setInterval(fetchGroup, 5000);
+        // 3. Меняем кнопки на странице
+        document.getElementById('loginBtn').style.display = 'none';
+        document.getElementById('logoutBtn').style.display = 'block';
+        
+        // 4. Обновляем список группы на экране
+        fetchGroup();
+    } else {
+        currentUser = null;
+        document.getElementById('loginBtn').style.display = 'block';
+        document.getElementById('logoutBtn').style.display = 'none';
+    }
+});
 </script>
 </body>
 </html>
