@@ -114,18 +114,19 @@
     let currentUser = null;
 
     // 1. Функция входа
-    async function signInWithGoogle() {
-        const { error } = await supabase.auth.signInWithOAuth({
-            provider: 'google',
-            options: {
-                // Если эта строка есть, убедись что тут правильный адрес Гитхаба
-                redirectTo: 'https://240118-prog.github.io/supabase/' 
-            }
-        });
-
-        if (error) console.error('Ошибка входа:', error.message);
+   async function signInWithGoogle() {
+    console.log("Нажали кнопку входа..."); // Это появится в консоли при нажатии
+    const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+            redirectTo: 'https://240118-prog.github.io/supabase/'
+        }
+    });
+    if (error) {
+        console.error('Ошибка входа:', error.message);
+        alert('Ошибка: ' + error.message);
     }
-
+}
     // 2. Функция выхода
     async function signOut() {
         await supabase.auth.signOut();
