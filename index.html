@@ -105,53 +105,94 @@
     </div>
 
     <script type="module">
-        import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
+       import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
 
-// 1. Инициализация (ВСТАВЬ СВОИ ДАННЫЕ ТУТ)
-const supabase = createClient('https://egcivoqsyivtzwtrjuyi.supabase.co', 'sb_publishable_LEZr5rVEb19wJLpqovojZw_7pkqk8xW')
+    const URL = 'https://egcivoqsyivtzwtrjuyi.supabase.co';
+    const KEY = 'sb_publishable_LEZr5rVEb19wJLpqovojZw_7pkqk8xW'; // Используй свой ключ
+    const supabase = createClient(URL, KEY);
 
-// 2. Ждем загрузки всей страницы, чтобы кнопка точно нашлась
-document.addEventListener('DOMContentLoaded', () => {
-    const loginBtn = document.getElementById('loginBtn');
+    let currentUser = null;
 
-    if (loginBtn) {
-        // Привязываем нажатие ПРЯМО ЗДЕСЬ, а не в HTML
-        loginBtn.onclick = async () => {
-            console.log("Кнопка реально нажата!");
-            const { error } = await supabase.auth.signInWithOAuth({
-                provider: 'google',
-                options: {
-                    // Указываем путь к папке на GitHub
-                    redirectTo: 'https://240118-prog.github.io/supabase/'
-                }
-            });
-            if (error) alert("Ошибка Supabase: " + error.message);
-        };
-    } else {
-        console.error("Кнопка loginBtn не найдена в HTML! Проверь id.");
+    // 1. Функция входа
+    async function signInWithGoogle() {
+        const { error } = await supabase.auth.signInWithOAuth({
+            provider: 'google',
+            options: {
+                redirectTo: window.location.origin // Вернуться на текущую страницу после входа
+            }
+        });
+        if (error) console.error('Ошибка входа:', error.message);
     }
-});
 
-// 3. Слушатель входа
-supabase.auth.onAuthStateChange((event, session) => {
-    console.log("Статус изменился:", event, session);
-    const loginBtn = document.getElementById('loginBtn');
-    
-    if (session) {
-        if (loginBtn) loginBtn.style.display = 'none';
-        
-        // Меняем текст "Загрузка" на имя
-        const userName = session.user.email.split('@')[0];
-        const statusHeader = document.querySelector('.card h2');
-        if (statusHeader) statusHeader.innerText = userName;
-        
-        console.log("Успешный вход!");
-    } else {
-        if (loginBtn) loginBtn.style.display = 'block';
+    // 2. Функция выхода
+    async function signOut() {
+        await supabase.auth.signOut();
+        window.location.reload();
     }
-});
 
-   
+    // 3. Измененная функция смены статуса (теперь берет ID из сессии)
+    window.changeStatus = async (text, color) => {
+        if (!currentUser) return alert("Сначала войдите в аккаунт!");
+
+        const { error } = await supabase
+            .from('profiles')
+            .update({ status: text, color: color })
+            .eq('id', currentUser.id);
+
+        if (error) {
+            console.error(error);
+            alert("Ошибка обновления. Проверьте политики RLS.");
+        } else {
+            fetchGroup();
+        }
+    };
+
+    async function fetchGroup() {
+        const { data, error } = await supabase
+            .from('profiles')
+            .select('*')
+            .order('username', { ascending: true });
+
+        if (error) return console.error(error);
+
+        const list = document.getElementById('groupList');
+        list.innerHTML = data.map(user => `
+            <div class="user-item">
+                <div class="status-dot" style="background: ${user.color || '#ccc'}"></div>
+                <div class="user-details" style="flex-grow: 1;">
+                    <strong>${user.username || user.email}</strong><br>
+                    <small>${user.status || 'Статус не задан'}</small>
+                </div>
+            </div>
+        `).join('');
+
+        if (currentUser) {
+            const me = data.find(u => u.id === currentUser.id);
+            document.getElementById('myInfo').innerText = `Вы зашли как: ${me?.username || currentUser.email}`;
+        }
+    }
+
+    // 4. Слушатель состояния авторизации
+    supabase.auth.onAuthStateChange((event, session) => {
+        if (session) {
+            currentUser = session.user;
+            document.getElementById('loginBtn').style.display = 'none';
+            document.getElementById('logoutBtn').style.display = 'block';
+            fetchGroup();
+        } else {
+            currentUser = null;
+            document.getElementById('loginBtn').style.display = 'block';
+            document.getElementById('logoutBtn').style.display = 'none';
+            document.getElementById('myInfo').innerText = "Войдите, чтобы управлять статусом";
+        }
+    });
+
+    // Привязка кнопок
+    document.getElementById('loginBtn').onclick = signInWithGoogle;
+    document.getElementById('logoutBtn').onclick = signOut;
+
+    // Обновление списка
+    setInterval(fetchGroup, 5000);
 </script>
 </body>
 </html>
