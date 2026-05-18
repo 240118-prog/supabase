@@ -190,8 +190,8 @@
     });
 
     // Привязка кнопок
-    document.getElementById('loginBtn').onclick = signInWithGoogle;
-    document.getElementById('logoutBtn').onclick = signOut;
+    document.getElementById('loginBtn').addEventListener('click', signInWithGoogle);
+    document.getElementById('logoutBtn').addEventListener('click', signOut);
 
     // Обновление списка
     setInterval(fetchGroup, 5000);
