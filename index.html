@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Монитор Группы</title>
     <style>
-        /* CSS ДЛЯ ДИЗАЙНА */
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background-color: #f0f2f5;
@@ -15,7 +14,6 @@
             padding: 20px;
             margin: 0;
         }
-
         .card {
             background: white;
             border-radius: 12px;
@@ -25,18 +23,13 @@
             padding: 24px;
             margin-bottom: 20px;
         }
-
         h2 { margin-top: 0; font-size: 1.5rem; }
-
         .user-info { margin-bottom: 20px; color: #444; }
-
-        /* Сетка кнопок */
         .status-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 10px;
         }
-
         .status-btn {
             border: none;
             border-radius: 8px;
@@ -50,33 +43,25 @@
             gap: 8px;
             transition: opacity 0.2s;
         }
-
         .status-btn:hover { opacity: 0.9; }
-
-        /* Цвета кнопок из примера */
         .btn-study { background-color: #28a745; }
         .btn-coffee { background-color: #ffc107; color: #000; border: 1px solid #333; }
         .btn-game { background-color: #17a2b8; }
         .btn-home { background-color: #6c757d; }
-
-        /* Список группы */
         .user-item {
             display: flex;
             align-items: center;
             padding: 12px 0;
             border-bottom: 1px solid #eee;
         }
-
         .status-dot {
             width: 12px;
             height: 12px;
             border-radius: 50%;
             margin-right: 15px;
         }
-
         .user-details strong { font-size: 1.1rem; }
         .user-details small { color: #666; display: block; }
-
     </style>
 </head>
 <body>
@@ -95,97 +80,117 @@
 
     <div class="card">
         <h2>Монитор группы</h2>
-        <div id="groupList">
-            </div>
+        <div id="groupList"></div>
     </div>
-        <div class="card" id="authSection">
-    <h2>Вход</h2>
-    <button id="loginBtn">Войти через Google</button>
-    <button id="logoutBtn" class="status-btn" style="background: #ea4335; display: none;">Выйти</button>
+
+    <div class="card" id="authSection">
+        <h2>Вход</h2>
+        <button id="loginBtn" class="status-btn" style="background: #4285F4; width: 100%;">Войти через Google</button>
+        <button id="logoutBtn" class="status-btn" style="background: #ea4335; display: none; width: 100%;">Выйти</button>
     </div>
+
     <script type="module">
-    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
+        import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
 
-    const URL = 'https://egcivoqsyivtzwtrjuyi.supabase.co';
-    const KEY = 'sb_publishable_LEZr5rVEb19wJLpqovojZw_7pkqk8xW'; 
-    const supabase = createClient(URL, KEY);
+        const URL = 'https://egcivoqsyivtzwtrjuyi.supabase.co';
+        const KEY = 'sb_publishable_LEZr5rVEb19wJLpqovojZw_7pkqk8xW'; 
+        const supabase = createClient(URL, KEY);
 
-    let currentUser = null;
+        let currentUser = null;
 
-    // Функция входа
-    async function signInWithGoogle() {
-        console.log("Кнопка нажата, пытаюсь войти..."); // Это появится в консоли (F12)
-        const { error } = await supabase.auth.signInWithOAuth({
-            provider: 'google',
-            options: {
-                redirectTo: 'https://240118-prog.github.io/supabase/'
+        // 1. Проверка сессии при загрузке страницы
+        async function checkUser() {
+            const { data: { session } } = await supabase.auth.getSession();
+            handleAuthChange(session);
+        }
+
+        // 2. Логика переключения интерфейса
+        function handleAuthChange(session) {
+            if (session) {
+                currentUser = session.user;
+                document.getElementById('loginBtn').style.display = 'none';
+                document.getElementById('logoutBtn').style.display = 'block';
+                fetchGroup();
+            } else {
+                currentUser = null;
+                document.getElementById('loginBtn').style.display = 'block';
+                document.getElementById('logoutBtn').style.display = 'none';
+                document.getElementById('myInfo').innerText = "Войдите, чтобы управлять статусом";
             }
+        }
+
+        // Слушатель событий входа/выхода
+        supabase.auth.onAuthStateChange((event, session) => {
+            handleAuthChange(session);
         });
-        if (error) console.error('Ошибка входа:', error.message);
-    }
 
-    // Функция выхода
-    async function signOut() {
-        await supabase.auth.signOut();
-        window.location.reload();
-    }
+        // Функция входа
+        async function signInWithGoogle() {
+            const { error } = await supabase.auth.signInWithOAuth({
+                provider: 'google',
+                options: {
+                    redirectTo: 'https://240118-prog.github.io/supabase/'
+                }
+            });
+            if (error) alert('Ошибка входа: ' + error.message);
+        }
 
-    // Делаем функцию смены статуса доступной глобально, так как она вызывается из onclick в кнопках
-    window.changeStatus = async (text, color) => {
-        if (!currentUser) return alert("Сначала войдите в аккаунт!");
-        const { error } = await supabase
-            .from('profiles')
-            .update({ status: text, color: color })
-            .eq('id', currentUser.id);
+        // Функция выхода
+        async function signOut() {
+            await supabase.auth.signOut();
+            window.location.reload();
+        }
 
-        if (error) console.error(error);
-        else fetchGroup();
-    };
+        // Смена статуса
+        window.changeStatus = async (text, color) => {
+            if (!currentUser) return alert("Сначала войдите в аккаунт!");
+            
+            const { error } = await supabase
+                .from('profiles')
+                .update({ status: text, color: color })
+                .eq('id', currentUser.id);
 
-    async function fetchGroup() {
-        const { data, error } = await supabase
-            .from('profiles')
-            .select('*')
-            .order('username', { ascending: true });
+            if (error) {
+                console.error(error);
+                alert("Ошибка обновления. Проверьте RLS политики в Supabase.");
+            } else {
+                fetchGroup();
+            }
+        };
 
-        if (error) return console.error(error);
+        // Загрузка группы
+        async function fetchGroup() {
+            const { data, error } = await supabase
+                .from('profiles')
+                .select('*')
+                .order('username', { ascending: true });
 
-        const list = document.getElementById('groupList');
-        list.innerHTML = data.map(user => `
-            <div class="user-item">
-                <div class="status-dot" style="background: ${user.color || '#ccc'}"></div>
-                <div class="user-details" style="flex-grow: 1;">
-                    <strong>${user.username || user.email}</strong><br>
-                    <small>${user.status || 'Статус не задан'}</small>
+            if (error) return console.error(error);
+
+            const list = document.getElementById('groupList');
+            list.innerHTML = data.map(user => `
+                <div class="user-item">
+                    <div class="status-dot" style="background: ${user.color || '#ccc'}"></div>
+                    <div class="user-details" style="flex-grow: 1;">
+                        <strong>${user.username || user.email}</strong><br>
+                        <small>${user.status || 'Статус не задан'}</small>
+                    </div>
                 </div>
-            </div>
-        `).join('');
+            `).join('');
 
-        if (currentUser) {
-            const me = data.find(u => u.id === currentUser.id);
-            document.getElementById('myInfo').innerText = `Вы зашли как: ${me?.username || currentUser.email}`;
+            if (currentUser) {
+                const me = data.find(u => u.id === currentUser.id);
+                document.getElementById('myInfo').innerText = `Вы зашли как: ${me?.username || currentUser.email}`;
+            }
         }
-    }
 
-    supabase.auth.onAuthStateChange((event, session) => {
-        if (session) {
-            currentUser = session.user;
-            document.getElementById('loginBtn').style.display = 'none';
-            document.getElementById('logoutBtn').style.display = 'block';
-            fetchGroup();
-        } else {
-            currentUser = null;
-            document.getElementById('loginBtn').style.display = 'block';
-            document.getElementById('logoutBtn').style.display = 'none';
-            document.getElementById('myInfo').innerText = "Войдите, чтобы управлять статусом";
-        }
-    });
+        // Привязка кнопок (для type="module" это единственный верный способ)
+        document.getElementById('loginBtn').addEventListener('click', signInWithGoogle);
+        document.getElementById('logoutBtn').addEventListener('click', signOut);
 
-    // --- ВОТ ЭТО САМОЕ ВАЖНОЕ: ПРИВЯЗКА СОБЫТИЙ ---
-    document.getElementById('loginBtn').addEventListener('click', signInWithGoogle);
-    document.getElementById('logoutBtn').addEventListener('click', signOut);
-
-    setInterval(fetchGroup, 5000);
-</script>
-
-    
+        // Старт
+        checkUser();
+        setInterval(fetchGroup, 5000);
+    </script>
+</body>
+</html>
