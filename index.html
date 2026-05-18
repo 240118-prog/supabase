@@ -103,50 +103,43 @@
     <button id="loginBtn">Войти через Google</button>
     <button id="logoutBtn" class="status-btn" style="background: #ea4335; display: none;">Выйти</button>
     </div>
-
     <script type="module">
-       import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
 
     const URL = 'https://egcivoqsyivtzwtrjuyi.supabase.co';
-    const KEY = 'sb_publishable_LEZr5rVEb19wJLpqovojZw_7pkqk8xW'; // Используй свой ключ
+    const KEY = 'sb_publishable_LEZr5rVEb19wJLpqovojZw_7pkqk8xW'; 
     const supabase = createClient(URL, KEY);
 
     let currentUser = null;
 
-    // 1. Функция входа
-        async function signInWithGoogle() {
-    const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-            // Вот здесь ДОЛЖЕН быть полный путь к твоей папке:
-            redirectTo: 'https://240118-prog.github.io/supabase/'
-        }
-    });
-    if (error) console.error('Ошибка входа:', error.message);
-}
+    // Функция входа
+    async function signInWithGoogle() {
+        console.log("Кнопка нажата, пытаюсь войти..."); // Это появится в консоли (F12)
+        const { error } = await supabase.auth.signInWithOAuth({
+            provider: 'google',
+            options: {
+                redirectTo: 'https://240118-prog.github.io/supabase/'
+            }
+        });
+        if (error) console.error('Ошибка входа:', error.message);
+    }
 
-
-    // 2. Функция выхода
+    // Функция выхода
     async function signOut() {
         await supabase.auth.signOut();
         window.location.reload();
     }
 
-    // 3. Измененная функция смены статуса (теперь берет ID из сессии)
+    // Делаем функцию смены статуса доступной глобально, так как она вызывается из onclick в кнопках
     window.changeStatus = async (text, color) => {
         if (!currentUser) return alert("Сначала войдите в аккаунт!");
-
         const { error } = await supabase
             .from('profiles')
             .update({ status: text, color: color })
             .eq('id', currentUser.id);
 
-        if (error) {
-            console.error(error);
-            alert("Ошибка обновления. Проверьте политики RLS.");
-        } else {
-            fetchGroup();
-        }
+        if (error) console.error(error);
+        else fetchGroup();
     };
 
     async function fetchGroup() {
@@ -174,7 +167,6 @@
         }
     }
 
-    // 4. Слушатель состояния авторизации
     supabase.auth.onAuthStateChange((event, session) => {
         if (session) {
             currentUser = session.user;
@@ -189,12 +181,11 @@
         }
     });
 
-    // Привязка кнопок
+    // --- ВОТ ЭТО САМОЕ ВАЖНОЕ: ПРИВЯЗКА СОБЫТИЙ ---
     document.getElementById('loginBtn').addEventListener('click', signInWithGoogle);
     document.getElementById('logoutBtn').addEventListener('click', signOut);
 
-    // Обновление списка
     setInterval(fetchGroup, 5000);
 </script>
-</body>
-</html>
+
+    
